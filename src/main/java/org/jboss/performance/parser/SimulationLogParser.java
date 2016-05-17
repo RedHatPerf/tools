@@ -35,11 +35,13 @@ public class SimulationLogParser {
             throw new SimulationLogFileNotDefinedException();
         }
         this.responseTimeList = parseFile();
-
     }
 
-    public void printStats(StatsPrinter statsPrinter){
-        statsPrinter.printStats(this.responseTimeList);
+    public void printStats(List<StatsPrinter> printers) {
+        //Print stats
+        for (StatsPrinter printer : printers) {
+            printer.printStats(this.responseTimeList);
+        }
     }
 
     private List<Double> parseFile() {
@@ -55,4 +57,6 @@ public class SimulationLogParser {
         }
         return null;
     }
+
+
 }

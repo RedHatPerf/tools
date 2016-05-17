@@ -3,14 +3,16 @@ package org.jboss.performance.parser;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
-import org.jboss.performance.parser.printer.PercentileStatsPrinter;
-import org.jboss.performance.parser.printer.SummaryStatsPrinter;
+import org.jboss.performance.parser.printer.Util;
 
 /**
  * Unit test for simple App.
  */
 public class GatlingParserTest
         extends TestCase {
+
+    public static final String SIMULATION_LOG_FILE = "simulation.log";
+
     /**
      * Create the test case
      *
@@ -31,19 +33,16 @@ public class GatlingParserTest
      * Rigourous Test :-)
      */
     public void testApp() {
-        SimulationLogParser simulationLogParser = new SimulationLogParser("/home/johara/Work/projects/benchmarks/webapp-rs/target/gatling/results/put-1462831084072/simulation.log");
+
+        String filePath = this.getClass().getClassLoader().getResource(SIMULATION_LOG_FILE).getPath();
+
+        SimulationLogParser simulationLogParser = new SimulationLogParser(filePath);
 
         simulationLogParser.parseLogFile();
 
-        //Print stats
-        simulationLogParser.printStats(new SummaryStatsPrinter());
-        simulationLogParser.printStats(new PercentileStatsPrinter(50));
-        simulationLogParser.printStats(new PercentileStatsPrinter(95));
-        simulationLogParser.printStats(new PercentileStatsPrinter(99));
-        simulationLogParser.printStats(new PercentileStatsPrinter(99.9));
-        simulationLogParser.printStats(new PercentileStatsPrinter(99.99));
-        simulationLogParser.printStats(new PercentileStatsPrinter(99.999));
-        simulationLogParser.printStats(new PercentileStatsPrinter(99.9999));
+        //print stats
+        simulationLogParser.printStats(Util.getPrinters());
 
     }
+
 }

@@ -1,6 +1,5 @@
 package org.jboss.performance.parser.printer;
 
-import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.OptionalDouble;
 import java.util.stream.Stream;
