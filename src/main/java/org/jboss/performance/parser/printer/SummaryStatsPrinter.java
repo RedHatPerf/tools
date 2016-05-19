@@ -11,7 +11,7 @@ public class SummaryStatsPrinter implements StatsPrinter{
 
     @Override
     public void printStats(List<Double> valueList) {
-        Stream<Double> timesStream = valueList.stream();
+        Stream<Double> timesStream = valueList.parallelStream();
 
         DoubleSummaryStatistics maxResponseTime = timesStream.mapToDouble(Double::doubleValue).summaryStatistics();
 

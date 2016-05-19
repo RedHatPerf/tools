@@ -17,7 +17,7 @@ public class PercentileStatsPrinter implements StatsPrinter{
 
     @Override
     public void printStats(List<Double> valueList) {
-        Stream<Double> timesStream = valueList.stream();
+        Stream<Double> timesStream = valueList.parallelStream();
         long centil = new Double(valueList.size() / 100.00 * centile).longValue();
 
         OptionalDouble centileValue = timesStream.mapToDouble(Double::doubleValue).sorted().limit(centil).reduce((first, second) -> second);
