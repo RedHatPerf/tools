@@ -13,4 +13,4 @@ hs_err_pid*
 *.iml
 
 # Maven build
-target/*
+**/target/*
