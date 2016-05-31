@@ -13,17 +13,19 @@ public class GatlingParser {
         if (args.length == 0) {
             printHelp();
         }
-        switch (args[0].toLowerCase().trim()) {
-            case "stats":
-                printStats(args);
-                break;
-            case "filter":
-                filterLog(args);
-                break;
-            case "help":
-            default:
-                printHelp();
-                break;
+        else {
+            switch (args[0].toLowerCase().trim()) {
+                case "stats":
+                    printStats(args);
+                    break;
+                case "filter":
+                    filterLog(args);
+                    break;
+                case "help":
+                default:
+                    printHelp();
+                    break;
+            }
         }
 
     }
