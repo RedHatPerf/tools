@@ -1,5 +1,9 @@
 package org.jboss.performance.parser;
 
+import org.jboss.performance.parser.format.FileFormat;
+import org.jboss.performance.parser.format.FileVersionA;
+import org.jboss.performance.parser.format.FileVersionB;
+import org.jboss.performance.parser.format.UnknownFileFormatException;
 import org.jboss.performance.parser.printer.StatsPrinter;
 
 import java.io.BufferedReader;
@@ -19,22 +23,42 @@ import java.util.stream.Stream;
  */
 public class SimulationLogParser {
 
-    private static final String SEPARATOR = "\t";
-    public static final String REQUEST = "REQUEST";
-    public static final String RUN = "RUN";
-    public static final String USER = "USER";
-    public static final String START = "START";
-    public static final String END = "END";
-
-    public static final int TYPE_FIELD = 2;
-    public static final int COMPLETE_TIMESTAMP_FIELD = 8;
-    public static final int REQUEST_TIMESTAMP_FIELD = 5;
+    public final FileFormat fileFormat;
 
     private final String simulationLogFile;
     private List<Double> responseTimeList;
 
     public SimulationLogParser(String simulationLogFile) {
         this.simulationLogFile = simulationLogFile;
+        this.fileFormat  = getFileFormat();
+    }
+
+    private FileFormat getFileFormat() {
+        String header = readFile();
+        FileFormat fileFormat;
+
+        fileFormat = new FileVersionA();
+
+        if(fileFormat.validateFormat(header))
+            return fileFormat;
+
+        fileFormat = new FileVersionB();
+
+        if(fileFormat.validateFormat(header))
+            return fileFormat;
+
+        fileFormat = null;
+
+        throw new UnknownFileFormatException();
+    }
+
+    private String readFile() {
+        try (BufferedReader reader = new BufferedReader(new FileReader(simulationLogFile))) {
+            return reader.readLine();
+        } catch (IOException e) {
+            e.printStackTrace();  // TODO: Customise this generated block
+            return null;
+        }
     }
 
     public void parseLogFile() {
@@ -50,14 +74,14 @@ public class SimulationLogParser {
             String line;
             SimulationInfo info = new SimulationInfo(simulationLogFile);
             while ((line = reader.readLine()) != null) {
-                String[] columns = line.split(SEPARATOR);
-                if (REQUEST.equals(columns[TYPE_FIELD])) {
-                    info.firstRequestStart = Math.min(Long.parseLong(columns[REQUEST_TIMESTAMP_FIELD]), info.firstRequestStart);
-                    info.lastRequestComplete = Math.max(Long.parseLong(columns[COMPLETE_TIMESTAMP_FIELD]), info.lastRequestComplete);
-                } else if (RUN.equals(columns[TYPE_FIELD])) {
-                    info.clazz = columns[0];
-                    info.name = columns[1];
-                    info.startTime = Long.parseLong(columns[3]);
+                String[] columns = line.split(fileFormat.getSEPARATOR());
+                if (fileFormat.getREQUEST().equals(columns[fileFormat.getTypeField()])) {
+                    info.firstRequestStart = Math.min(Long.parseLong(columns[fileFormat.getRequestTimestampField()]), info.firstRequestStart);
+                    info.lastRequestComplete = Math.max(Long.parseLong(columns[fileFormat.getCompleteTimestampField()]), info.lastRequestComplete);
+                } else if (fileFormat.getRUN().equals(columns[fileFormat.getTypeField()])) {
+                    info.clazz = columns[fileFormat.getClassTypeField()];
+                    info.name = columns[fileFormat.getIdField()];
+                    info.startTime = Long.parseLong(columns[fileFormat.getHeaderStartTimeField()]);
                 }
             }
             return info;
@@ -78,9 +102,9 @@ public class SimulationLogParser {
 
         try (Stream<String> stream = Files.lines(Paths.get(simulationLogFile))) {
             return stream
-                    .map(line -> Arrays.asList(line.split(SEPARATOR)))
-                    .filter(list -> list.get(TYPE_FIELD).equals(REQUEST))
-                    .map(item -> Double.parseDouble(item.get(COMPLETE_TIMESTAMP_FIELD)) - Double.parseDouble(item.get(REQUEST_TIMESTAMP_FIELD)))
+                    .map(line -> Arrays.asList(line.split(fileFormat.getSEPARATOR())))
+                    .filter(list -> list.get(fileFormat.getTypeField()).equals(fileFormat.getREQUEST()))
+                    .map(item -> Double.parseDouble(item.get(fileFormat.getCompleteTimestampField())) - Double.parseDouble(item.get(fileFormat.getRequestTimestampField())))
                     .collect(Collectors.toList());
         } catch (IOException e) {
             e.printStackTrace();
@@ -93,9 +117,9 @@ public class SimulationLogParser {
         try (BufferedReader reader = new BufferedReader(new FileReader(simulationLogFile))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                String[] columns = line.split(SEPARATOR);
+                String[] columns = line.split(fileFormat.getSEPARATOR());
                 for (Filter filter : filters) {
-                    columns = filter.apply(info, columns, cs -> {
+                    columns = filter.apply(fileFormat, info, columns,  cs-> {
                         try {
                             addLine(writer, cs);
                         } catch (IOException e) {
@@ -116,14 +140,14 @@ public class SimulationLogParser {
     public void addLine(BufferedWriter writer, String[] columns) throws IOException {
         writer.write(columns[0]);
         for (int i = 1; i < columns.length; ++i) {
-            writer.write(SEPARATOR);
+            writer.write(fileFormat.getSEPARATOR());
             writer.write(columns[i]);
         }
         writer.write('\n');
     }
 
     interface Filter {
-        String[] apply(SimulationInfo info, String[] columns, Consumer<String[]> addLine);
+        String[] apply(FileFormat fileFormat, SimulationInfo info, String[] columns, Consumer<String[]> addLine);
     }
 
     /** Skip first X ms */
@@ -135,30 +159,30 @@ public class SimulationLogParser {
         }
 
         @Override
-        public String[] apply(SimulationInfo info, String[] columns, Consumer<String[]> addLine) {
+        public String[] apply(FileFormat fileFormat, SimulationInfo info, String[] columns, Consumer<String[]> addLine) {
             long newStart = info.startTime + ms;
-            if (REQUEST.equals(columns[TYPE_FIELD])) {
-                if (Long.parseLong(columns[REQUEST_TIMESTAMP_FIELD]) < newStart) {
+            if (fileFormat.getREQUEST().equals(columns[fileFormat.getTypeField()])) {
+                if (Long.parseLong(columns[fileFormat.getRequestTimestampField()]) < newStart) {
                     return null;
                 }
-            } else if (USER.equals(columns[TYPE_FIELD])) {
+            } else if (fileFormat.getUSER().equals(columns[fileFormat.getTypeField()])) {
                 long start = Long.parseLong(columns[4]);
                 long end = Long.parseLong(columns[5]);
-                if (START.equals(columns[3]) && start < newStart) {
+                if (fileFormat.getSTART().equals(columns[3]) && start < newStart) {
                     return null;
-                } else if (END.equals(columns[3]) && start < newStart) {
+                } else if (fileFormat.getEND().equals(columns[3]) && start < newStart) {
                     if (end < newStart) {
                         return null;
                     } else {
                         columns[4] = String.valueOf(newStart);
                         String[] startColumns = Arrays.copyOf(columns, columns.length);
-                        startColumns[3] = START;
+                        startColumns[3] = fileFormat.getSTART();
                         startColumns[4] = String.valueOf(newStart);
                         startColumns[5] = "0";
                         addLine.accept(startColumns);
                     }
                 }
-            } else if (RUN.equals(columns[TYPE_FIELD])) {
+            } else if (fileFormat.getRUN().equals(columns[fileFormat.getTypeField()])) {
                 columns[3] = String.valueOf(newStart);
             }
             return columns;
@@ -174,12 +198,12 @@ public class SimulationLogParser {
         }
 
         @Override
-        public String[] apply(SimulationInfo info, String[] columns, Consumer<String[]> addLine) {
-            if (REQUEST.equals(columns[TYPE_FIELD])) {
-                if (Long.parseLong(columns[COMPLETE_TIMESTAMP_FIELD]) >= info.lastRequestComplete - ms) {
+        public String[] apply(FileFormat fileFormat, SimulationInfo info, String[] columns, Consumer<String[]> addLine) {
+            if (fileFormat.getREQUEST().equals(columns[fileFormat.getTypeField()])) {
+                if (Long.parseLong(columns[fileFormat.getCompleteTimestampField()]) >= info.lastRequestComplete - ms) {
                     return null;
                 }
-            } else if (USER.equals(columns[TYPE_FIELD])) {
+            } else if (fileFormat.getUSER().equals(columns[fileFormat.getTypeField()])) {
                 if (Long.parseLong(columns[4]) >= info.lastRequestComplete - ms || Long.parseLong(columns[5]) >= info.lastRequestComplete - ms) {
                     return null;
                 }

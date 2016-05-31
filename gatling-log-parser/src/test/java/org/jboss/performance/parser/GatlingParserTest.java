@@ -12,6 +12,7 @@ public class GatlingParserTest
         extends TestCase {
 
     public static final String SIMULATION_LOG_FILE = "simulation.log";
+    public static final String SIMULATION_LOG_FILE_FORMAT_B = "simulation.formatB.log";
 
     /**
      * Create the test case
@@ -32,7 +33,7 @@ public class GatlingParserTest
     /**
      * Rigourous Test :-)
      */
-    public void testApp() {
+    public void testFormatA() {
 
         String filePath = this.getClass().getClassLoader().getResource(SIMULATION_LOG_FILE).getPath();
 
@@ -45,4 +46,16 @@ public class GatlingParserTest
 
     }
 
+    public void testFormatB() {
+
+        String filePath = this.getClass().getClassLoader().getResource(SIMULATION_LOG_FILE_FORMAT_B).getPath();
+
+        SimulationLogParser simulationLogParser = new SimulationLogParser(filePath);
+
+        simulationLogParser.parseLogFile();
+
+        //print stats
+        simulationLogParser.printStats(Util.getPrinters());
+
+    }
 }
