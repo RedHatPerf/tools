@@ -13,6 +13,7 @@ public class GatlingParserTest
 
     public static final String SIMULATION_LOG_FILE = "simulation.log";
     public static final String SIMULATION_LOG_FILE_FORMAT_B = "simulation.formatB.log";
+    public static final String SIMULATION_LOG_FILE_ASSERTIONS = "simulation.assertion.log";
 
     /**
      * Create the test case
@@ -49,6 +50,18 @@ public class GatlingParserTest
     public void testFormatB() {
 
         String filePath = this.getClass().getClassLoader().getResource(SIMULATION_LOG_FILE_FORMAT_B).getPath();
+
+        SimulationLogParser simulationLogParser = new SimulationLogParser(filePath);
+
+        simulationLogParser.parseLogFile();
+
+        //print stats
+        simulationLogParser.printStats(Util.getPrinters());
+
+    }
+    public void testAssertions() {
+
+        String filePath = this.getClass().getClassLoader().getResource(SIMULATION_LOG_FILE_ASSERTIONS).getPath();
 
         SimulationLogParser simulationLogParser = new SimulationLogParser(filePath);
 

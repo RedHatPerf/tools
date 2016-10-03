@@ -38,7 +38,14 @@ public abstract class BaseFileVersion implements FileFormat {
     }
 
     public boolean validateFormat(String header) {
-        return header.split(getSEPARATOR())[this.getTypeField()].equals(this.getRUN());
+        try{
+            String[] splitHeader = header.split(getSEPARATOR());
+            return splitHeader[this.getTypeField()].equals(this.getRUN());
+        }
+        catch (Exception e){
+            return false;
+        }
+
     }
 
 }

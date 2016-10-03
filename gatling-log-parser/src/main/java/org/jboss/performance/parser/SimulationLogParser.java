@@ -23,6 +23,7 @@ import java.util.stream.Stream;
  */
 public class SimulationLogParser {
 
+    public static final String ASSERTION_STRING = "ASSERTION";
     public final FileFormat fileFormat;
 
     private final String simulationLogFile;
@@ -54,7 +55,11 @@ public class SimulationLogParser {
 
     private String readFile() {
         try (BufferedReader reader = new BufferedReader(new FileReader(simulationLogFile))) {
-            return reader.readLine();
+            String line = reader.readLine();
+            while( line.contains( ASSERTION_STRING )){
+                line = reader.readLine();
+            }
+            return line;
         } catch (IOException e) {
             e.printStackTrace();  // TODO: Customise this generated block
             return null;
